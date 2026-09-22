@@ -1,0 +1,41 @@
+[
+ {
+  "tick": 1,
+  "ts": 1790035752.5310545,
+  "op": "REFUSED",
+  "actor": "fixture",
+  "engine": "bpe-trainer",
+  "payload": {
+   "kind": "merge",
+   "new_token_id": 256,
+   "reason": "NO_CORPUS_BIND",
+   "producer": {
+    "tool": "gpu_bpe4quilt",
+    "vocabulary": "merge-ledger/v1"
+   }
+  },
+  "chain_prev": "00000000",
+  "row_hash": "8de64f3f"
+ },
+ {
+  "tick": 2,
+  "ts": 1790035752.5311644,
+  "op": "VIEW",
+  "actor": "fixture",
+  "engine": "bpe-trainer",
+  "payload": {
+   "kind": "export",
+   "producer": {
+    "tool": "gpu_bpe4quilt",
+    "vocabulary": "merge-ledger/v1"
+   },
+   "artifact": "fixtures/vocab.pkl",
+   "artifact_sha256": "740bc358a89c0fa934c717a81174618c1114666faab18046a7f5ac1a074cbb9e",
+   "note": "",
+   "merges_booked": 0,
+   "ledger_chain_head": "8de64f3f"
+  },
+  "chain_prev": "8de64f3f",
+  "row_hash": "1647e7af"
+ }
+]
