@@ -44,9 +44,10 @@ python examples/receipt_offline_run.py --check   # receipted run, no browser
 python -m pytest tests/ -q                       # agent contracts + receipts + family fixtures
 ```
 
-Full doctrine: [`docs/QUILT.md`](docs/QUILT.md). Receipts are opt-in
-(`ledger=None` changes nothing); the live demo UI does not book receipts
-yet.
+Full doctrine: [`docs/QUILT.md`](docs/QUILT.md). Receipts are opt-in at
+the library level (`ledger=None` changes nothing); the loopback demo UI
+books a ledger for every run and exports a verified JSONL chain to
+`artifacts/receipts/` on reset/exit.
 
 ## The action space
 

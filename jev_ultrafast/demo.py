@@ -5,12 +5,14 @@ import json
 import os
 import secrets
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
 from .agent import Agent
 from .questions import MAX_STEPS
+from .quilt import RunLedger
 
 ROOT = Path(__file__).parent
 PORT = int(os.environ.get("TYPESAFE_DEMO_PORT", "8766"))
@@ -18,6 +20,7 @@ ORIGIN = f"http://127.0.0.1:{PORT}"
 TOKEN = secrets.token_urlsafe(32)
 LOCK = threading.Lock()
 AGENT = None
+LEDGER = None
 
 
 def load_environment():
@@ -31,18 +34,43 @@ def load_environment():
 
 def response_state():
     state = AGENT.snapshot() if AGENT else {"page": None, "status": "idle", "history": [], "decision": None}
-    return {**state, "text_model": os.environ.get("TEXT_MODEL", "deepseek-chat"), "max_steps": MAX_STEPS}
+    return {
+        **state,
+        "text_model": os.environ.get("TEXT_MODEL", "deepseek-chat"),
+        "max_steps": MAX_STEPS,
+        "ledger_head": LEDGER.head if LEDGER else None,
+        "ledger_rows": len(LEDGER.rows) if LEDGER else 0,
+    }
+
+
+def export_ledger():
+    """Verify and persist the current run's receipt chain, if it has rows."""
+    if LEDGER is None or not LEDGER.rows:
+        return None
+    ok, bad_row, why = LEDGER.verify()
+    out_dir = Path.cwd() / "artifacts" / "receipts"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    doc = LEDGER.export(out_dir / f"{stamp}-{LEDGER.run_id}.jsonl")
+    doc["verify_ok"] = ok
+    if not ok:
+        doc["verify_bad_row"] = bad_row
+        doc["verify_why"] = why
+    (out_dir / f"{stamp}-{LEDGER.run_id}.canon.json").write_text(json.dumps(doc, indent=2, sort_keys=True))
+    return doc
 
 
 def close_browser():
-    global AGENT
+    global AGENT, LEDGER
     if AGENT:
+        export_ledger()
         AGENT.close()
         AGENT = None
+        LEDGER = None
 
 
 def command(name, body):
-    global AGENT
+    global AGENT, LEDGER
     if name == "reset":
         scenario = body.get("scenario", "flights")
         if scenario not in {"travel", "research", "flights"}:
@@ -50,7 +78,8 @@ def command(name, body):
         goal = body.get("goal", "").strip()
         if not goal or len(goal) > 2000:
             raise ValueError("Enter 1–2,000 characters")
-        close_browser()
+        close_browser()  # closes and exports the previous run's ledger
+        ledger = RunLedger(run_id=secrets.token_hex(4))
         AGENT = Agent(
             "https://www.google.com/travel/flights?hl=en"
             if scenario == "flights"
@@ -58,7 +87,9 @@ def command(name, body):
             goal,
             screenshots=True,
             record_dir=Path.cwd() / "artifacts" / "frames" if body.get("record") else None,
+            ledger=ledger,
         )
+        LEDGER = ledger
         AGENT.state["scenario"] = scenario
     else:
         if AGENT is None:
