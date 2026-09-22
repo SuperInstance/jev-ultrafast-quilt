@@ -1,6 +1,7 @@
 """The complete agent loop. Typed choices, observable state, bounded execution."""
 
 import base64
+import os
 import time
 from pathlib import Path
 
@@ -10,7 +11,9 @@ from .questions import MAX_STEPS
 
 
 class Agent:
-    def __init__(self, url, goals, *, record_dir=None, screenshots=False):
+    ledger = None  # optional RunLedger; __new__-built test doubles may skip __init__
+
+    def __init__(self, url, goals, *, record_dir=None, screenshots=False, ledger=None):
         task = goals.strip() if isinstance(goals, str) else "\n".join(goals).strip()
         if not task:
             raise ValueError("Supply a task")
@@ -19,6 +22,7 @@ class Agent:
         self.browser = Browser(url)
         self.record_dir = Path(record_dir) if record_dir else None
         self.screenshots = screenshots or bool(record_dir)
+        self.ledger = ledger
         try:
             page = self.browser.observe(screenshot=self.screenshots)
         except Exception:
@@ -42,6 +46,14 @@ class Agent:
         if self.record_dir:
             self.record_dir.mkdir(parents=True, exist_ok=True)
             (self.record_dir / "000000.jpg").write_bytes(base64.b64decode(page["screenshot"]))
+        if self.ledger is not None:
+            self.ledger.bind(
+                self.state["goal"],
+                url,
+                budgets={"max_steps": MAX_STEPS, "model_call_budget": MAX_STEPS * 2},
+                page_fingerprint=page["fingerprint"],
+                model=os.environ.get("TYPESAFE_MODEL", "jev-latest"),
+            )
 
     def snapshot(self):
         return {
@@ -57,6 +69,9 @@ class Agent:
                 self.command("predict", {})
                 return self.command("act", {"fingerprint": state["page"]["fingerprint"]})
             except StalePage:
+                if self.ledger is not None:
+                    self.ledger.refused("stale_decision",
+                                        page_fingerprint=state["page"]["fingerprint"])
                 state["decision"] = None
                 state["status"] = "ready"
                 state["page"] = state["browser"].observe(screenshot=self.screenshots)
@@ -82,10 +97,21 @@ class Agent:
                     "elapsed_ms": round((time.perf_counter() - state["started_at"]) * 1000),
                 }
             )
+            if self.ledger is not None:
+                elements, _, _ = action_space(state["page"]["actions"])
+                self.ledger.decision(
+                    len(state["history"]) + 1,
+                    state["page"]["fingerprint"],
+                    elements,
+                    state["decision"],
+                )
             state["status"] = "predicted"
         elif name == "act":
             decision, page = state["decision"], state["page"]
             if not decision or body.get("fingerprint") != page["fingerprint"]:
+                if self.ledger is not None:
+                    self.ledger.refused("no_decision_to_act",
+                                        page_fingerprint=page["fingerprint"])
                 raise ValueError("Observe and choose before acting")
             # Consume once, before any mutation or model call. A retry cannot double-click.
             state["decision"] = None
@@ -97,10 +123,17 @@ class Agent:
                 state["status"] = "done" if selected == "DONE" else "blocked"
                 state["plan_index"] = int(selected == "DONE")
                 state["elapsed_ms"] = round((time.perf_counter() - state["started_at"]) * 1000)
+                if self.ledger is not None:
+                    if selected == "DONE":
+                        self.ledger.resolution("done", page_fingerprint=page["fingerprint"])
+                    else:
+                        self.ledger.refused("agent_blocked", page_fingerprint=page["fingerprint"])
                 return self.snapshot()
             action = next(a for a in page["actions"] if a["id"] == selected)
             if len(state["history"]) >= MAX_STEPS:
                 state["status"] = "blocked"
+                if self.ledger is not None:
+                    self.ledger.refused("budget_exhausted", page_fingerprint=page["fingerprint"])
                 raise ValueError(f"Stopped at the {MAX_STEPS}-action demo budget")
             text, helper = None, None
             if action["kind"] == "fill":
@@ -110,7 +143,13 @@ class Agent:
                 if self.pending_text and self.pending_text[0] == context:
                     _, text, helper = self.pending_text
                 else:
-                    text, helper = field_text(context)
+                    try:
+                        text, helper = field_text(context)
+                    except ValueError:
+                        if self.ledger is not None:
+                            self.ledger.refused("text_generation_failed",
+                                                page_fingerprint=page["fingerprint"])
+                        raise
                     self.pending_text = (context, text, helper)
                     state["text_calls"].append({**helper, "field": action["label"], "value": text})
             # Browser.act checks freshness immediately before input, including after text generation.
@@ -146,6 +185,8 @@ class Agent:
                 url=state["page"]["url"],
                 elapsed_ms=state["elapsed_ms"],
             )
+            if self.ledger is not None:
+                self.ledger.execution(len(state["history"]), page["fingerprint"], state["history"][-1])
             if state["record"]:
                 (self.record_dir / f"{state['elapsed_ms']:06d}.jpg").write_bytes(
                     base64.b64decode(state["page"]["screenshot"])
@@ -156,6 +197,9 @@ class Agent:
                 if len(repeated) == 3 and all(h["page_changed"] is False and h["kind"] != "wait" for h in repeated)
                 else "ready"
             )
+            if state["status"] == "blocked" and self.ledger is not None:
+                self.ledger.refused("repetition_guard",
+                                    page_fingerprint=state["page"]["fingerprint"])
         else:
             raise ValueError("Unknown command")
         return self.snapshot()

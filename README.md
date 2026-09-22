@@ -16,6 +16,38 @@ Give it one goal. [TypeSafe's Jev](https://docs.typesafe.ai/introduction) picks 
 
 [Watch the MP4](docs/demo.mp4) · [Measurements](docs/performance.md) · [Read the loop](jev_ultrafast/agent.py)
 
+## Quilt receipts (quilt-ecosystem adaptation)
+
+This fork adds `jev_ultrafast/quilt.py`: every typed choice the agent makes —
+an operation, a target, verified probabilities — bookable as a hash-chained
+receipt in the quilt 5-opcode family envelope. BIND the run (goal, page,
+budgets), EFFECT per decision (rival target-head answers preserved
+verbatim) and per execution (typed text bound by sha-256, not copied),
+REFUSED rows for the agent's own refusals — `agent_blocked`,
+`stale_decision`, `no_decision_to_act`, `text_generation_failed`,
+`budget_exhausted`, `repetition_guard` — and VIEW for exported traces.
+After the browser session is gone, the chain still answers *what was
+decided, on what observation, and what executed*.
+
+```python
+from jev_ultrafast import Agent, RunLedger
+
+ledger = RunLedger(run_id="flights-2026-09-22")
+with Agent(url, goal, ledger=ledger) as agent:
+    for state in agent.run():
+        ...
+ok, bad_row, why = ledger.verify()
+```
+
+```bash
+python examples/receipt_offline_run.py --check   # receipted run, no browser
+python -m pytest tests/ -q                       # agent contracts + receipts + family fixtures
+```
+
+Full doctrine: [`docs/QUILT.md`](docs/QUILT.md). Receipts are opt-in
+(`ledger=None` changes nothing); the live demo UI does not book receipts
+yet.
+
 ## The action space
 
 Every observation produces a new element table:
