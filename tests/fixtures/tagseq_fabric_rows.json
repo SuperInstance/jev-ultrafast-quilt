@@ -1,16 +1,16 @@
 [
  {
   "tick": 1,
-  "ts": 1000.0,
+  "ts": 1000.5,
   "op": "BIND",
   "actor": "fixture",
-  "fabric_state": "d01933c8e769e73cf372396e79a8ba3df751b5cd8fc639fc9ef8ef932808a25b",
+  "fabric_state": "208fb6eb32789fc6be5d9e71e6096e3fb8b4583d875128272d31200f9002731d",
   "payload": {
    "kind": "fabric",
    "digest": {
     "cells": 2,
     "rounds": 0,
-    "state_hash": "d01933c8e769e73cf372396e79a8ba3df751b5cd8fc639fc9ef8ef932808a25b",
+    "state_hash": "208fb6eb32789fc6be5d9e71e6096e3fb8b4583d875128272d31200f9002731d",
     "policy": {
      "energy_scale": 1024,
      "survive_min": 256,
@@ -24,28 +24,28 @@
       0,
       0
      ],
-     "energy": 512,
-     "content_hash": "d7c03742bcc53db2cd27d7b3b450512fe1b1c9a20cbede983f4d510f99b070f2"
+     "energy": 1024,
+     "content_hash": "2977e9f4adbd9170515e6387a987400c1a35ad83235f6a9a9cdfe573844a8bd7"
     },
     "B": {
      "address": [
       1,
       0
      ],
-     "energy": 512,
-     "content_hash": "a9c05f81ad84ee0cf04fc7fdb9078afa23f8f1b83c6b44d3d7b7ab6e4baf5b6b"
+     "energy": 1024,
+     "content_hash": "b49fc377a7a369a6207a3924183fac4177ce3e7eb15fb4e405bb5caab28bb4e9"
     }
    }
   },
   "chain_prev": "00000000",
-  "row_hash": "bc2ec5e4"
+  "row_hash": "215c2ba2"
  },
  {
   "tick": 2,
-  "ts": 1000.0,
+  "ts": 1000.5,
   "op": "TICK",
   "actor": "fixture",
-  "fabric_state": "d01933c8e769e73cf372396e79a8ba3df751b5cd8fc639fc9ef8ef932808a25b",
+  "fabric_state": "208fb6eb32789fc6be5d9e71e6096e3fb8b4583d875128272d31200f9002731d",
   "payload": {
    "kind": "pack",
    "sequence": [
@@ -53,30 +53,93 @@
     "B"
    ],
    "pack_hash": "b64e3448a83a5b86466465080361c1a7e1157a27ddccd4b68069cb18caffb74a",
-   "grants": 1
+   "grants": 2
   },
-  "chain_prev": "bc2ec5e4",
-  "row_hash": "98fb917d"
+  "chain_prev": "215c2ba2",
+  "row_hash": "6bbc24d7"
  },
  {
   "tick": 3,
-  "ts": 1000.0,
+  "ts": 1000.5,
   "op": "LINK",
   "actor": "fixture",
-  "fabric_state": "d01933c8e769e73cf372396e79a8ba3df751b5cd8fc639fc9ef8ef932808a25b",
+  "fabric_state": "208fb6eb32789fc6be5d9e71e6096e3fb8b4583d875128272d31200f9002731d",
   "payload": {
    "kind": "pack-grants",
-   "pack": "98fb917d",
+   "pack": "6bbc24d7",
    "edges": [
     {
      "src": "A",
      "dst": "B",
      "src_pos": 0,
      "link_pos": 0
+    },
+    {
+     "src": "B",
+     "dst": "A",
+     "src_pos": 1,
+     "link_pos": 0
     }
    ]
   },
-  "chain_prev": "98fb917d",
-  "row_hash": "2f218c68"
+  "chain_prev": "6bbc24d7",
+  "row_hash": "6348226b"
+ },
+ {
+  "tick": 4,
+  "ts": 1000.5,
+  "op": "REFUSED",
+  "actor": "fixture",
+  "fabric_state": "208fb6eb32789fc6be5d9e71e6096e3fb8b4583d875128272d31200f9002731d",
+  "payload": {
+   "reason": "EMPTY_PACK"
+  },
+  "chain_prev": "6348226b",
+  "row_hash": "4fd1cad5"
+ },
+ {
+  "tick": 5,
+  "ts": 1000.5,
+  "op": "TICK",
+  "actor": "fixture",
+  "fabric_state": "208fb6eb32789fc6be5d9e71e6096e3fb8b4583d875128272d31200f9002731d",
+  "payload": {
+   "kind": "pack",
+   "sequence": [
+    "B",
+    "A"
+   ],
+   "pack_hash": "6154c6465147df94c23156414f2cea84fb3094124ea1e6e55ff9a13567a72e68",
+   "grants": 2
+  },
+  "chain_prev": "4fd1cad5",
+  "row_hash": "30976643"
+ },
+ {
+  "tick": 6,
+  "ts": 1000.5,
+  "op": "LINK",
+  "actor": "fixture",
+  "fabric_state": "208fb6eb32789fc6be5d9e71e6096e3fb8b4583d875128272d31200f9002731d",
+  "payload": {
+   "kind": "pack-grants",
+   "pack": "30976643",
+   "edges": [
+    {
+     "src": "B",
+     "dst": "A",
+     "src_pos": 0,
+     "link_pos": 0
+    },
+    {
+     "src": "A",
+     "dst": "B",
+     "src_pos": 1,
+     "link_pos": 0
+    }
+   ]
+  },
+  "chain_prev": "30976643",
+  "row_hash": "2b6a04aa"
  }
 ]
