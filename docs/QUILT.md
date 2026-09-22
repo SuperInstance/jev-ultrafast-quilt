@@ -60,8 +60,12 @@ checks them here unmodified.
 
 ## Honest scope
 
-Receipts are local and opt-in (`ledger=None` changes nothing). The live
-demo (`demo.py`) does not book receipts yet; wire `RunLedger` through it
-where a run is started. Screenshots are already content-bound: the
-`decision/v1` row carries `elements_sha256`, and `VIEW` rows bind exported
-artifacts by hash.
+The loopback demo (`demo.py`) books a `RunLedger` for every run: `reset`
+starts a fresh chain (run_id = 8 hex), every step books through the
+Agent, and reset/close exports a verified JSONL chain plus a canon JSON
+(with the verify verdict, including bad row + reason on tamper) to
+`artifacts/receipts/`. The API state exposes `ledger_head` and
+`ledger_rows` so the UI can show the chain growing. Screenshots remain
+content-bound: the `decision/v1` row carries `elements_sha256`, and
+`VIEW` rows bind exported artifacts by hash. Real-browser runs still need
+Chrome + a TypeSafe key (untouched by the receipt layer).
